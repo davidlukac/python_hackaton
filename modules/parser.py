@@ -8,10 +8,11 @@ import threading
 
 
 class MyThread(threading.Thread):
-    def __init__(self, obj):
+    def __init__(self, obj, rss_article):
         super().__init__()
         self.obj = obj
         self.result = None
+        self.rss = rss_article
 
     # Run a thread
     def run(self):

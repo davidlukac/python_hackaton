@@ -17,13 +17,14 @@ class MetaArticle(object):
     """ Meta representation of an article, in which all key fields are parsed to lowercase strings without accents. """
 
     def __init__(self, title: List[str], url: str, keywords: List[str], perex: List[str], body: str,
-                 source: SourceSite):
+                 source: SourceSite, orginal: RssArticle):
         self.title = title
         self.url = url
         self.keywords = keywords
         self.perex = perex
         self.body = body
         self.source = source
+        self.orginal = orginal
 
     def __repr__(self):
         return 'Title: %s\nUrl: %s\nKeywords: %s\nPerex: %s\nBody: %s\nSource: %s' \
@@ -39,7 +40,8 @@ class MetaArticleFactory(object):
             keywords=StringUtils.remove_stopwords(ListUtils.to_low_encoded_list(a.keywords)),
             perex=StringUtils.remove_stopwords(StringUtils.to_low_encoded_list(a.perex)),
             body=a.body,
-            source=a.source
+            source=a.source,
+            orginal=a
         )
 
 
@@ -58,12 +60,31 @@ class Collector(object):
         def exception_handler(request: AsyncRequest, exception: Exception) -> None:
             print("Request for '%s' failed. Error: [%s]" % (request.url, exception))
 
+        # for source, parser in self.parsers.items():
+        #     articles = []
+        #     keywords = []
+        #     rss = []
+        #
+        #     parsed_articles = parser.parse()
+        #
+        #     # Start new parser for each Parser
+        #     for rss_article in parsed_articles:
+        #         html_parser = Parser(rss_article)
+        #         t = MyThread(html_parser, rss_article)
+        #         threads.append(t)
+        #         t.start()
+
         def get_responses(urls: Dict[str, RssArticle]) -> List[Response]:
             rs = (get(u, hooks={'response': response_hook(original_request_url=u)}) for u, _ in urls.items())
             return imap(rs, exception_handler=exception_handler, size=20)
 
         for source, parser in self.parsers.items():
             articles = []
+
+            # # Get results from threads
+            # for t in threads:
+            #     keywords.append(t.result)
+            #     rss.append(t.rss)
 
             rss_articles = parser.parse()
             # Turn list of RSS article to dict {URL: RssArticle}.
@@ -82,6 +103,11 @@ class Collector(object):
 
             for i, rss_article in enumerate(rss_articles):
                 meta_article = MetaArticleFactory.from_rss_article(rss_article)
+                # Match the right keywords for right article
+                for i, rs in enumerate(rss):
+                    if rs == rss_article:
+                        meta_article.keywords += keywords[i] #?
+
                 articles.append(meta_article)
             res[source] = articles
 
