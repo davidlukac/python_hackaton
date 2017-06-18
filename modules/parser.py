@@ -20,14 +20,9 @@ class MyThread(threading.Thread):
 
 
 class Parser(object):
-    def __init__(self, article: RssArticle):
-        self.url = article.url
-
-    def get_document(self) -> str:
-        return requests.get(self.url).content
-
-    def get_keywords(self) -> list:
-        tree = html.fromstring(self.get_document())
+    @staticmethod
+    def get_keywords(document: str) -> list:
+        tree = html.fromstring(document)
 
         keywords = []
 
